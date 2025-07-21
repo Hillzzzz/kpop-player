@@ -27,15 +27,14 @@ export default function App() {
     }
   }, [tracks, offset]);
 
-  useEffect(() => {
-    if (inView) setOffset((prev) => prev + 20);
-  }, [inView]);
+  uuseEffect(() => {
+if (tracks.length || offset > 0) {
+  setHasLoaded(true);       
+ }
 
-  const allSongs = pages.flat();
-
-  if (!hasLoaded) {
-    return <p className="p-8 text-white bg-black min-h-screen">Loading...</p>;
-  }
+if (tracks.length) {
+  setPages((prev) => [...prev, tracks]);
+ }
 
   if (allSongs.length === 0) {
     return (
