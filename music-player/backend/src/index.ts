@@ -1,106 +1,131 @@
-import express from 'express';
-import cors from 'cors';
-import fs from 'fs';
-import path from 'path';
-import multer from 'multer';
-import { parseFile } from 'music-metadata';
+/*************************************************************************
+ *  Simple in‑memory music API
+ *  --------------------------------------------------
+ *  POST   /songs/upload   → { title, artist, album, year, audioUrl }
+ *  GET    /songs?skip&take
+ *  POST   /songs          (create Song)
+ *  PUT    /songs/:id      (update)
+ *  DELETE /songs/:id
+ *************************************************************************/
 
-// ---------- Types ----------
+import express from 'express';
+import multer from 'multer';
+import cors from 'cors';
+import path from 'path';
+import { parseFile } from 'music-metadata';
+import fs from 'fs';
+
+const PORT = parseInt(process.env.PORT || '4000', 10);
+const HOST = process.env.HOST ?? `http://localhost:${PORT}`; // Railway sets HOST automatically
+
+/*************************************************************************
+ *  CORS
+ *************************************************************************/
+const allowed = new Set<string>([
+  'http://localhost:5173',
+  process.env.SOULPOP_ORIGIN ?? '',              // e.g. https://soulpopmusic.netlify.app
+]);
+
+const app = express();
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // allow Postman / curl (no origin) and whitelisted sites
+      if (!origin || allowed.has(origin)) return cb(null, origin ?? '*');
+      return cb(new Error(`Origin ${origin} not allowed by CORS`));
+    },
+  })
+);
+
+app.use(express.json());
+
+/*************************************************************************
+ *  Multer for uploads
+ *************************************************************************/
+const upload = multer({ dest: 'uploads/' });
+
+/*************************************************************************
+ *  Data model (in‑memory only)
+ *************************************************************************/
 interface Song {
   id: number;
   title: string;
   artist: string;
-  album: string;
-  year: number;
+  album?: string;
+  year?: number;
   coverUrl?: string;
   audioUrl: string;
 }
 
-// ---------- App setup ----------
-const app = express();
-const PORT = Number(process.env.PORT) || 4000;
-
-// CORS — add your Netlify URL
-app.use(
-  cors({
-    origin: [
-      'http://localhost:5173',
-      'https://popmusicplayer.netlify.app', // ← change if your Netlify URL differs
-    ],
-  })
-);
-app.use(express.json());
-
-// ---------- File upload ----------
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-
-const upload = multer({ dest: uploadDir });
-
-// ---------- In‑memory store ----------
 let songs: Song[] = [];
-let idCounter = 1;
+let nextId = 1;
 
-// ---------- Routes ----------
+/*************************************************************************
+ *  Routes
+ *************************************************************************/
 
-// Upload audio file + extract metadata
+// === 1. Upload MP3/WAV and return extracted metadata =============
 app.post('/songs/upload', upload.single('audio'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const { path: filePath, originalname, filename } = req.file;
-    const meta = await parseFile(filePath);
+    const { path: tmpPath, originalname, filename } = req.file;
+    const meta = await parseFile(tmpPath).catch(() => ({} as any));
 
-    const title = meta.common.title ?? path.parse(originalname).name;
-    const artist = meta.common.artist ?? 'Unknown Artist';
-    const album = meta.common.album ?? 'Unknown Album';
-    const year = meta.common.year ?? new Date().getFullYear();
+    const title  = meta.common?.title  ?? path.parse(originalname).name;
+    const artist = meta.common?.artist ?? 'Unknown Artist';
+    const album  = meta.common?.album  ?? 'Unknown Album';
+    const year   = meta.common?.year   ?? new Date().getFullYear();
 
-    // Build a public URL to the uploaded file
-    const audioUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+    const audioUrl = `${HOST}/uploads/${filename}`;
 
-    res.json({ title, artist, album, year, audioUrl });
+    return res.json({ title, artist, album, year, audioUrl });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to process file.' });
+    console.error('Upload failed:', err);
+    return res.status(500).json({ error: 'Failed to process file' });
   }
 });
 
-// Serve uploaded files
-app.use('/uploads', express.static(uploadDir));
+// === 2. Serve uploaded files =====================================
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-// GET /songs  (paginated)
+// === 3. CRUD API ================================================
+
+// paginated list
 app.get('/songs', (req, res) => {
-  const skip = Number(req.query.skip ?? 0);
-  const take = Number(req.query.take ?? 20);
+  const skip = Number(req.query.skip) || 0;
+  const take = Number(req.query.take) || 20;
   res.json(songs.slice(skip, skip + take));
 });
 
-// POST /songs  (create)
+// create
 app.post('/songs', (req, res) => {
-  const song: Song = { ...req.body, id: idCounter++ };
+  const song: Song = { id: nextId++, ...req.body };
   songs.push(song);
   res.status(201).json(song);
 });
 
-// PUT /songs/:id  (update)
+// update
 app.put('/songs/:id', (req, res) => {
   const id = Number(req.params.id);
-  const idx = songs.findIndex((s) => s.id === id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  const index = songs.findIndex((s) => s.id === id);
+  if (index === -1) return res.status(404).json({ error: 'Not found' });
 
-  songs[idx] = { ...songs[idx], ...req.body };
-  res.json(songs[idx]);
+  songs[index] = { ...songs[index], ...req.body };
+  res.json(songs[index]);
 });
 
-// DELETE /songs/:id
+// delete
 app.delete('/songs/:id', (req, res) => {
   const id = Number(req.params.id);
   songs = songs.filter((s) => s.id !== id);
   res.status(204).end();
 });
 
-// ---------- Start ----------
-app.listen(PORT, () =>
-  console.log(`🚀  Server running at http://localhost:${PORT}`)
-);
+/*************************************************************************
+ *  Start server
+ *************************************************************************/
+app.listen(PORT, () => {
+  console.log(`🎵  API ready  →  ${HOST}`);
+  console.log(`📂  Upload dir →  ${path.resolve('uploads')}`);
+});
