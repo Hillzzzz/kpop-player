@@ -1,7 +1,8 @@
 // src/components/SongModal.tsx
-import { FormEvent, useState } from 'react';
-import useSongs, { revalidateSongs, API } from '../hooks/useSongs';
+import { useState, FormEvent } from 'react';
+import { refreshAllSongs as revalidateSongs, API } from '../hooks/useSongs';
 
+/* ---------- interfaces must be top‑level (not nested!) ---------- */
 export interface Song {
   id?: number;
   title: string;
@@ -9,7 +10,8 @@ export interface Song {
   album?: string;
   year?: number;
   coverUrl?: string;
-  audioUrl: string | File;      
+  audioUrl: string | File;
+}
 
 interface Props {
   open: boolean;
@@ -18,6 +20,8 @@ interface Props {
   refresh: () => void;
   setCurrent?: (i: number) => void;
 }
+/* ---------------------------------------------------------------- */
+
 
 export default function SongModal({
   open,
