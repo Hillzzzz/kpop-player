@@ -1,17 +1,21 @@
 import useSWR, { mutate } from 'swr';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 export const PAGE_SIZE = 20;
-export const API = import.meta.env.VITE_API_URL;
+export const API = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
 
+/* ------------- Hook ------------- */
 export default function useSongs(page = 0) {
-  return useSWR(`${API}/songs?skip=${page * PAGE_SIZE}&take=${PAGE_SIZE}`, fetcher);
+  const url = `${API}/songs?skip=${page * PAGE_SIZE}&take=${PAGE_SIZE}`;
+  return useSWR(url, fetcher);
 }
 
-// Global refresh for all pages
-export const refreshAllSongs = () => mutate((key: string) => key.startsWith(`${API}/songs`));
+/* ------------- Helpers ------------- */
 
-// Force revalidation of all SWR caches
-export const revalidateSongs = () => mutate(() => true);
+// refresh only the /songs pages
+export const refreshAllSongs = () =>
+  mutate((key: any) => typeof key === 'string' && key.startsWith(`${API}/songs`));
 
+// alias for convenience
+export const revalidateSongs = refreshAllSongs;
