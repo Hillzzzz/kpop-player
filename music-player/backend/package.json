@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn src/index.ts",
-    "seed": "ts-node src/../prisma/seed.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "postinstall": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",   // ← add
+    "deploy": "npm run prisma:migrate && npm run start"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",
