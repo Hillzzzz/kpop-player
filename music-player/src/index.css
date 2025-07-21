@@ -1,0 +1,5 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { @apply bg-kpop-50 text-kpop-900; }
