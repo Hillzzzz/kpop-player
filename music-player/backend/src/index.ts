@@ -10,7 +10,7 @@ const PORT = 4000;
 const upload = multer({ dest: 'uploads/' });
 
 app.use(cors({
-  origin: ['https://popmusicplayer.netlify.app', 'http://localhost:5173'],
+  origin: ['https://mellow-salmiakki-76685b.netlify.app', 'http://localhost:5173'],
 }));
 app.use(express.json());
 
