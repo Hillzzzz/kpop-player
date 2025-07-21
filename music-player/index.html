@@ -4,35 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Music Player</title>
-
-    <!-- ✅ Tailwind CSS via CDN (for development only) -->
-    <script src="https://cdn.tailwindcss.com/3.4.4"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              kpop: {
-                50:  "#fff5fa",
-                100: "#ffe6f3",
-                200: "#ffc1df",
-                300: "#ff9bca",
-                400: "#ff54a4",
-                500: "#ff1680",
-                600: "#e8006e",
-                700: "#c2005c",
-                800: "#9c004a",
-                900: "#7d003d",
-              },
-            },
-          },
-        },
-      };
-    </script>
   </head>
   <body class="bg-kpop-50 text-kpop-900">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
