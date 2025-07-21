@@ -17,3 +17,4 @@ model Song {
   audioUrl  String
   createdAt DateTime @default(now())
 }
+
