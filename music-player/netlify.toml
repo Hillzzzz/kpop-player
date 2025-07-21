@@ -1,7 +1,7 @@
 [build]
   base    = "music-player/frontend"
   command = "npm run build"
-  publish = "music-player/frontend/dist"
+  publish = "dist"              # ←  this line
 
 [build.environment]
   VITE_API_URL = "https://kpop-player-production.up.railway.app"
