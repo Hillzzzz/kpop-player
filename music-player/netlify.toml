@@ -1,7 +1,8 @@
+# netlify.toml  – repo root
 [build]
   base    = "music-player/frontend"
   command = "npm run build"
-  publish = "dist"              # ←  this line
+  publish = "dist"
 
 [build.environment]
   VITE_API_URL = "https://kpop-player-production.up.railway.app"
