@@ -15,7 +15,7 @@ import path from 'path';
 import { parseFile } from 'music-metadata';
 import fs from 'fs';
 
-const PORT = parseInt(process.env.PORT || '4000', 10);
+const PORT = Number(process.env.PORT) || 4000;
 const HOST = process.env.HOST ?? `http://localhost:${PORT}`; // Railway sets HOST automatically
 
 /*************************************************************************
