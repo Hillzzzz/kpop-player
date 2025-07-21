@@ -1,5 +1,6 @@
 import express from 'express';
 import multer from 'multer';
+import cors from 'cors';
 import { parseFile } from 'music-metadata';
 import fs from 'fs';
 import path from 'path';
@@ -7,6 +8,20 @@ import path from 'path';
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 
+// ✅ Enable CORS
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://kpop-player.vercel.app'
+  ]
+}));
+
+// ✅ Health check route (optional)
+app.get('/', (req, res) => {
+  res.send('Backend is running.');
+});
+
+// ✅ Upload endpoint
 app.post('/songs/upload', upload.single('audio'), async (req, res) => {
   try {
     if (!req.file) {
@@ -21,12 +36,11 @@ app.post('/songs/upload', upload.single('audio'), async (req, res) => {
     const album = metadata.common.album || 'Unknown Album';
     const year = metadata.common.year || new Date().getFullYear();
 
-    // Optionally, delete file after processing to save space
+    // Optionally delete file to save space
     fs.unlink(filePath, (err) => {
       if (err) console.error('Failed to delete uploaded file:', err);
     });
 
-    // Respond with extracted metadata
     return res.json({
       title,
       artist,
@@ -41,3 +55,8 @@ app.post('/songs/upload', upload.single('audio'), async (req, res) => {
   }
 });
 
+// ✅ Start server
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
