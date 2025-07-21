@@ -67,8 +67,10 @@ export default function App() {
             <img
               src={allSongs[0].coverUrl || '/default-cover.jpg'}
               alt="recent"
-              className="w-full aspect-square object-cover"
-            />
+                crossOrigin="anonymous"          
+  className="w-full aspect-square object-cover"
+/>
+
             <p className="p-2 text-center font-semibold">LOVE</p>
           </div>
 
