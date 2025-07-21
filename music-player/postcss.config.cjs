@@ -1,7 +1,6 @@
-// music-player/postcss.config.cjs
 module.exports = {
   plugins: {
-    tailwindcss: {},     // 👈 correct plugin name
+    '@tailwindcss/postcss': {}, // ← new plugin name
     autoprefixer: {},
   },
 };
