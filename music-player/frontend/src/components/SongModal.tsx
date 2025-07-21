@@ -1,15 +1,15 @@
 // src/components/SongModal.tsx
-import { useState, FormEvent } from 'react';
-import { revalidateSongs } from '../hooks/useSongs';
-import { API } from '../hooks/useSongs';
+import { FormEvent, useState } from 'react';
+import useSongs, { revalidateSongs, API } from '../hooks/useSongs';
 
 export interface Song {
   id?: number;
   title: string;
   artist: string;
+  album?: string;
+  year?: number;
   coverUrl?: string;
-  audioUrl: string | File;
-}
+  audioUrl: string | File;      
 
 interface Props {
   open: boolean;
@@ -19,7 +19,7 @@ interface Props {
   setCurrent?: (i: number) => void;
 }
 
-export function SongModal({
+export default function SongModal({
   open,
   onClose,
   initial,
@@ -27,14 +27,14 @@ export function SongModal({
   setCurrent,
 }: Props) {
   const [form, setForm] = useState<Song>(
-    initial ?? { title: '', artist: '', audioUrl: '' as any }
+    initial ?? { title: '', artist: '', audioUrl: '' as unknown as File }
   );
 
-  if (!open) return null; // nothing rendered when closed
+  if (!open) return null;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    await save(form, initial, onClose, setCurrent);
+    await saveSong(form, initial, onClose, setCurrent);
     refresh();
   };
 
@@ -48,6 +48,7 @@ export function SongModal({
           {initial ? 'Edit song' : 'Add a new song'}
         </h2>
 
+        {/* Title */}
         <input
           type="text"
           placeholder="Title"
@@ -57,6 +58,7 @@ export function SongModal({
           required
         />
 
+        {/* Artist */}
         <input
           type="text"
           placeholder="Artist"
@@ -66,6 +68,16 @@ export function SongModal({
           required
         />
 
+        {/* Cover URL (optional) */}
+        <input
+          type="url"
+          placeholder="Cover image URL (optional)"
+          value={form.coverUrl ?? ''}
+          onChange={(e) => setForm({ ...form, coverUrl: e.target.value })}
+          className="w-full border p-2 rounded"
+        />
+
+        {/* Audio file */}
         <input
           type="file"
           accept="audio/*"
@@ -93,33 +105,31 @@ export function SongModal({
   );
 }
 
-// helper moved OUTSIDE the component so it's not recreated each render
-async function save(
+async function saveSong(
   form: Song,
   initial: Song | null,
   onClose: () => void,
   setCurrent?: (i: number) => void
 ) {
   try {
-    // 1. upload audio file if needed
+    /* 1. upload audio if it's still a File */
     if (form.audioUrl instanceof File) {
       const fd = new FormData();
       fd.append('audio', form.audioUrl);
-
-      const res = await fetch(`${API}/songs/upload`, {
-        method: 'POST',
-        body: fd,
-      });
+      const res = await fetch(`${API}/songs/upload`, { method: 'POST', body: fd });
       if (!res.ok) throw new Error('Audio upload failed');
-
       const { audioUrl } = await res.json();
-      form.audioUrl = audioUrl;
+      form.audioUrl = audioUrl;            // replace File with URL string
     }
 
-    // 2. save / update
-    const method = initial ? 'PUT' : 'POST';
-    const url = initial ? `${API}/songs/${initial.id}` : `${API}/songs`;
+    /* 2. If user pasted NO cover and you want safe CORS, proxy through Weserv */
+    if (form.coverUrl && !form.coverUrl.includes('weserv.nl')) {
+      form.coverUrl = `https://images.weserv.nl/?url=${encodeURIComponent(form.coverUrl)}`;
+    }
 
+    /* 3. create or update */
+    const method = initial ? 'PUT' : 'POST';
+    const url    = initial ? `${API}/songs/${initial.id}` : `${API}/songs`;
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -127,14 +137,12 @@ async function save(
     });
     if (!res.ok) throw new Error('Save failed');
 
-    revalidateSongs();
+    revalidateSongs();       // SWR global mutate
     onClose();
-    setCurrent?.(0);
+    setCurrent?.(0);        // optional: jump player back to first track
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (err) {
     console.error(err);
     alert((err as Error).message);
   }
 }
-
-export default SongModal;
