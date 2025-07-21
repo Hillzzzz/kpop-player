@@ -1,41 +1,47 @@
-import { revalidateSongs } from '../hooks/useSongs'; // update your import
-import { usePlayer } from '../hooks/usePlayer'; // if you're using a player hook/context
+import { revalidateSongs } from '../hooks/useSongs';
+import { API } from '../hooks/useSongs';
 
 const save = async () => {
-  // If audioUrl is a File, upload it first
-  if (form.audioUrl instanceof File) {
-    const fd = new FormData();
-    fd.append('audio', form.audioUrl);
+  try {
+    // Upload audio file if needed
+    if (form.audioUrl instanceof File) {
+      const fd = new FormData();
+      fd.append('audio', form.audioUrl);
 
-    const res = await fetch(`${API}/songs/upload`, {
-      method: 'POST',
-      body: fd,
+      const res = await fetch(`${API}/songs/upload`, {
+        method: 'POST',
+        body: fd,
+      });
+
+      if (!res.ok) {
+        alert('Audio upload failed');
+        return;
+      }
+
+      const { audioUrl } = await res.json();
+      form.audioUrl = audioUrl;
+    }
+
+    // Save metadata
+    const method = initial ? 'PUT' : 'POST';
+    const url = initial ? `${API}/songs/${initial.id}` : `${API}/songs`;
+
+    const response = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
     });
 
-    if (!res.ok) {
-      alert('Audio upload failed');
+    if (!response.ok) {
+      alert('Failed to save song');
       return;
     }
 
-    const { audioUrl } = await res.json();
-
-    // Update the form with the real URL
-    form.audioUrl = audioUrl;
+    revalidateSongs();
+    onClose();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    console.error('Save failed:', err);
+    alert('Something went wrong');
   }
-
-  // Save the song (either create or update)
-  const method = initial ? 'PUT' : 'POST';
-  const url = initial ? `${API}/songs/${initial.id}` : `${API}/songs`;
-
-  await fetch(url, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(form),
-  });
-
-  revalidateSongs();
-  onClose();
-  setCurrent?.(0); // optional, depends on your player setup
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
-
