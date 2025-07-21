@@ -1,4 +1,4 @@
 [build]
-  # no base → Netlify installs at repo root
-  command = "npm --prefix music-player/frontend run build"
-  publish = "music-player/frontend/dist"
+  base    = "music-player/frontend"   # <─ Netlify cd’s here, runs npm install
+  command = "npm run build"           # uses the frontend package.json
+  publish = "dist"                    # uploads dist/
