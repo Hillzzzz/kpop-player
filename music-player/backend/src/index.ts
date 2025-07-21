@@ -29,13 +29,16 @@ const allowed = new Set<string>([
 const app = express();
 app.use(
   cors({
-    origin: (origin, cb) => {
-      // allow Postman / curl (no origin) and whitelisted sites
-      if (!origin || allowed.has(origin)) return cb(null, origin ?? '*');
-      return cb(new Error(`Origin ${origin} not allowed by CORS`));
-    },
+    origin: [
+      'https://soulpopmusic.netlify.app',   // your Netlify site
+      'http://localhost:5173'              // local dev
+    ],
+    methods: 'GET,POST,PUT,DELETE,OPTIONS',
+    allowedHeaders: '*',
+    credentials: false
   })
 );
+
 
 app.use(express.json());
 
