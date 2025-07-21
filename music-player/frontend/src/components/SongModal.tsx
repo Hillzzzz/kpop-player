@@ -46,4 +46,5 @@ const save = async () => {
     alert('Something went wrong during save');
   }
 };
+export default SongModal;
 
